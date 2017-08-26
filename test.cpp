@@ -3,6 +3,7 @@
 #include<iostream>
 #include<windows.h>
 #define eps 1e-3
+#define eps2 1e-6
 #define meps (-0.0000001)
 using namespace std;
 struct vec3
@@ -33,7 +34,7 @@ inline vec3 cheng(vec3 A,double B)
     ret.z = A.z*B;
     return ret;
 }
-inline vec3 calc(vec3 in ,vec3 out ,vec3 center ,double R)
+inline vec3 calc(vec3 in ,vec3 out ,vec3 center ,double R)//lilun 2500.000000 shiji 2499.999619 2993114 1281 1277.060339
 {
     double r2 = R * R;
     double l=0,r=1,mid,gap2;
@@ -53,6 +54,27 @@ inline vec3 calc(vec3 in ,vec3 out ,vec3 center ,double R)
     ret = in + cheng(io,mid);
     return ret;
 }
+vec3 sphere_calc(vec3 &in ,vec3 &out ,vec3 &center ,double R)//lilun 2500.000000 shiji 2499.999619 1706395 718 728.060935
+{
+	vec3 io = out - in;
+	vec3 ci = in - center;
+	float io2 = io * io;
+	float ioci = io * ci * 2;
+	float ci2 = ci * ci - R * R;
+	float ans = 1,f,df;
+	while (1)
+	{
+		f = io2 * ans * ans + ioci * ans + ci2;
+		if (f <= eps) break;
+		df = 2 * io2 * ans + ioci;
+		ans = ans - f / df;
+	}
+	vec3 ret;
+	ret.x = in.x + io.x * ans;
+	ret.y = in.y + io.y * ans;
+	ret.z = in.z + io.z * ans;
+	return ret;
+}
 int main()
 {
     //////////////////////////
@@ -62,7 +84,7 @@ int main()
     scanf("%lf%lf%lf",&out.x,&out.y,&out.z);
     scanf("%lf%lf%lf",&center.x,&center.y,&center.z);
     scanf("%lf",&R);
-    int n; scanf("%d",&n);
+    int n; scanf("%d",&n);//1000000
     vec3 ans;
     DWORD st,en;
     LARGE_INTEGER lg_int;
