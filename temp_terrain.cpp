@@ -248,7 +248,7 @@ void Terrain_Chunk::layertree_del(tetrahedron_node * now)
 	free(now);
 }
 
-inline void  Terrain_Chunk::layertree_update(tetrahedron_node*now)
+void  Terrain_Chunk::layertree_update(tetrahedron_node*now)
 {
 	int chcount = 0,i;
 	tetrahedron_node* ch;
@@ -291,9 +291,8 @@ inline void  Terrain_Chunk::layertree_update(tetrahedron_node*now)
 	}
 }
 
-void Terrain_Chunk::draw_tetrahedron_node(const vec3 & pos, const vec3 & dir, tetrahedron_node * now, bool test, int deep)
+inline void Terrain_Chunk::get_verts_attrib(tetrahedron_node*now)
 {
-	deep++;
 	tempvertsi[0] = now->tetrahedron_obj[0];
 	tempvertsvec[0] = (*vbo)[tempvertsi[0]].pos;//this will be changed when release
 	tempvertsi[1] = now->tetrahedron_obj[1];
@@ -302,6 +301,12 @@ void Terrain_Chunk::draw_tetrahedron_node(const vec3 & pos, const vec3 & dir, te
 	tempvertsvec[2] = (*vbo)[tempvertsi[2]].pos;//this will be changed when release
 	tempvertsi[3] = now->tetrahedron_obj[3];
 	tempvertsvec[3] = (*vbo)[tempvertsi[3]].pos;//this will be changed when release
+}
+
+void Terrain_Chunk::draw_tetrahedron_node(const vec3 & pos, const vec3 & dir, tetrahedron_node * now, bool test, int deep)
+{
+	deep++;
+	get_verts_attrib(now);
 	if (!tempvertsi[0]) //a vert is inf away
 	{
 		if (test)
@@ -352,7 +357,6 @@ void Terrain_Chunk::draw_tetrahedron_node(const vec3 & pos, const vec3 & dir, te
 			return;
 		}
 		/////////////////deep test
-		int l = 0, r = terrain_lod_level - 1, mid;
 		float maxdist = get_maxdist(deep);
 		bool toofar = true;
 		for (int i = 0;i <= 3;i++)
@@ -378,14 +382,7 @@ void Terrain_Chunk::draw_tetrahedron_node(const vec3 & pos, const vec3 & dir, te
 float Terrain_Chunk::query_tetrahedron_node(const sphere_collider & sp, tetrahedron_node * now)
 {
 	if (sp.hardness < now->hardness) return 0.0f;
-	tempvertsi[0] = now->tetrahedron_obj[0];
-	tempvertsvec[0] = (*vbo)[tempvertsi[0]].pos;//this will be changed when release
-	tempvertsi[1] = now->tetrahedron_obj[1];
-	tempvertsvec[1] = (*vbo)[tempvertsi[1]].pos;//this will be changed when release
-	tempvertsi[2] = now->tetrahedron_obj[2];
-	tempvertsvec[2] = (*vbo)[tempvertsi[2]].pos;//this will be changed when release
-	tempvertsi[3] = now->tetrahedron_obj[3];
-	tempvertsvec[3] = (*vbo)[tempvertsi[3]].pos;//this will be changed when release
+	get_verts_attrib(now);
 	if (!tempvertsi[0])//-inf
 	{
 		bool cross = false;
@@ -429,7 +426,7 @@ float Terrain_Chunk::query_tetrahedron_node(const sphere_collider & sp, tetrahed
 	return hardness_calc();
 }
 
-int Terrain_Chunk::dig_tetrahedron_node(const sphere_collider & sp, tetrahedron_node * now)
+int Terrain_Chunk::dig_tetrahedron_node(const sphere_collider & sp)
 {
 	int i, j;
 	for (i = 0;i <= prossess_count;i++)
@@ -450,9 +447,38 @@ int Terrain_Chunk::dig_tetrahedron_node(const sphere_collider & sp, tetrahedron_
 		}
 		else
 		{
-			int newcount = sphere_obj_calc();
+			get_verts_attrib(now);
+			int newcount = sphere_obj_calc(sp);
+			if (newcount >= 1)
+			{
+				now->isleaf = false;
+				//del box
+				switch (newcount)// caution! if now is -inf hardness should be recalculate
+				{
+					case 1 :
+					{
+						now->ch[0] = &tetrahedron_node(retvertsi[0],now,now->hardness);
+						break;
+					}
+					case 2 :
+					{
+						now->ch[0] = &tetrahedron_node(retvertsi[0], now, now->hardness);
+						now->ch[1] = &tetrahedron_node(retvertsi[1], now, now->hardness);
+						break;
+					}
+					case 3 :
+					{
+						now->ch[0] = &tetrahedron_node(retvertsi[0], now, now->hardness);
+						now->ch[1] = &tetrahedron_node(retvertsi[1], now, now->hardness);
+						now->ch[2] = &tetrahedron_node(retvertsi[2], now, now->hardness);
+						break;
+					}
+				}
+			}
 		}
+		obj_prossess_queue[i].obj = NULL;
 	}
+	prossess_count = 0;
 }
 
 int Terrain_Chunk:: VBOM_alloc(VBO_manager & VBOM)
