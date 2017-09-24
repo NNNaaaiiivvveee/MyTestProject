@@ -388,7 +388,7 @@ float Terrain_Chunk::query_tetrahedron_node(const sphere_collider & sp, tetrahed
 		bool cross = false;
 		for (int i = 1;i <= 3;i++)
 		{
-			if (vec3_dist(tempvertsvec[i], sp.center) < sp.expand_radius)
+			if (vec3_dist(tempvertsvec[i], sp.center) < sp.radius)//change
 			{
 				cross = true;
 				break;
